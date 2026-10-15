@@ -94,6 +94,8 @@ private:
 	void BeginCooldown();
 	void EndCooldown();
 	void ReleaseStunnedTargets();
+	void BeginAirHover();
+	void EndAirHover();
 
 	const TArray<TObjectPtr<UAttackData>>& GetCurrentAttacks() const;
 	UAnimInstance* GetAnimInstance() const;
@@ -108,6 +110,9 @@ private:
 	bool bHitWindowActive = false;
 	bool bHitConfirmed = false;
 	bool bInputBuffered = false;
+
+	bool bHovering = false;
+	float SavedGravityScale = 1.f;
 
 	UPROPERTY()
 	TObjectPtr<UAttackData> CurrentAttack;

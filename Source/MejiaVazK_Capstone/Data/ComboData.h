@@ -22,6 +22,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
 	TArray<TObjectPtr<UAttackData>> AirAttacks;
 
+	/**
+	 * Escala de gravedad mientras dura el combo aereo (0 = el personaje flota, 1 = gravedad normal).
+	 * Al terminar, falla o entrar en cooldown, se restaura la gravedad original y el personaje cae.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo|Air", meta = (ClampMin = "0.0"))
+	float AirGravityScale = 0.f;
+
 	/** Segundos de espera despues del ultimo golpe del combo (evita spamear). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo", meta = (ClampMin = "0.0"))
 	float CooldownDuration = 0.6f;

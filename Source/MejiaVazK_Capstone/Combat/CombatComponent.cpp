@@ -57,7 +57,10 @@ void UCombatComponent::RequestAttack()
 
 	case ECombatState::Idle:
 		bAirCombo = IsOwnerFalling() && ComboData->AirAttacks.Num() > 0;
-		BeginAttack(0);
+		if (BeginAttack(0) && bAirCombo)
+		{
+			BeginAirHover(); // se mantiene en el aire durante todo el combo
+		}
 		return;
 
 	case ECombatState::Attacking:
@@ -183,6 +186,7 @@ void UCombatComponent::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 void UCombatComponent::ResetCombo()
 {
 	ReleaseStunnedTargets();
+	EndAirHover();
 
 	State = ECombatState::Idle;
 	ComboIndex = 0;
@@ -198,6 +202,7 @@ void UCombatComponent::ResetCombo()
 void UCombatComponent::BeginCooldown()
 {
 	ReleaseStunnedTargets();
+	EndAirHover();
 
 	State = ECombatState::Cooldown;
 	ComboIndex = 0;
@@ -238,6 +243,41 @@ void UCombatComponent::ReleaseStunnedTargets()
 		}
 	}
 	StunnedTargets.Reset();
+}
+
+void UCombatComponent::BeginAirHover()
+{
+	if (bHovering)
+	{
+		return;
+	}
+
+	const ACharacter* Character = Cast<ACharacter>(GetOwner());
+	UCharacterMovementComponent* Movement = Character ? Character->GetCharacterMovement() : nullptr;
+	if (!Movement)
+	{
+		return;
+	}
+
+	SavedGravityScale = Movement->GravityScale;
+	Movement->GravityScale = ComboData ? ComboData->AirGravityScale : 0.f;
+	Movement->Velocity.Z = 0.f; // frena la caida o el salto en el momento del primer golpe
+	bHovering = true;
+}
+
+void UCombatComponent::EndAirHover()
+{
+	if (!bHovering)
+	{
+		return;
+	}
+	bHovering = false;
+
+	const ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (UCharacterMovementComponent* Movement = Character ? Character->GetCharacterMovement() : nullptr)
+	{
+		Movement->GravityScale = SavedGravityScale;
+	}
 }
 
 // ---------------------------------------------------------------------------
