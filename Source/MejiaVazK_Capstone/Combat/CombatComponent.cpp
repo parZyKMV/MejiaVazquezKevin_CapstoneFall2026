@@ -29,6 +29,7 @@ void UCombatComponent::BeginPlay()
 		if (UHealthComponent* Health = Owner->FindComponentByClass<UHealthComponent>())
 		{
 			Health->OnDeath.AddDynamic(this, &UCombatComponent::HandleOwnerDeath);
+			Health->OnHealthChanged.AddDynamic(this, &UCombatComponent::HandleOwnerHealthChanged);
 		}
 	}
 }
@@ -119,6 +120,8 @@ bool UCombatComponent::BeginAttack(int32 Index)
 	bHitConfirmed = false;
 	bInputBuffered = false;
 	HitActors.Reset();
+	bMoveCancelOpen = false;
+	SetControlLocked(true); // sin mover ni rotar mientras dura el ataque
 	CurrentAttack = Attack;
 	CurrentMontage = Attack->Montage; // antes de reproducir: el montage anterior termina y su callback se ignora
 
@@ -187,6 +190,8 @@ void UCombatComponent::ResetCombo()
 {
 	ReleaseStunnedTargets();
 	EndAirHover();
+	bMoveCancelOpen = false;
+	SetControlLocked(false);
 
 	State = ECombatState::Idle;
 	ComboIndex = 0;
@@ -203,6 +208,8 @@ void UCombatComponent::BeginCooldown()
 {
 	ReleaseStunnedTargets();
 	EndAirHover();
+	bMoveCancelOpen = false;
+	SetControlLocked(false);
 
 	State = ECombatState::Cooldown;
 	ComboIndex = 0;
@@ -318,6 +325,100 @@ void UCombatComponent::NotifyComboWindowEnd()
 {
 	bComboWindowOpen = false;
 	bInputBuffered = false;
+}
+
+void UCombatComponent::NotifyMoveCancelBegin()
+{
+	if (State == ECombatState::Attacking)
+	{
+		bMoveCancelOpen = true;
+		SetControlLocked(false); // al final de la animacion el jugador recupera el control
+	}
+}
+
+void UCombatComponent::NotifyMoveCancelTick()
+{
+	// Si el jugador se mueve durante esta ventana, el ataque se cancela y el combo se reinicia.
+	if (State == ECombatState::Attacking && bMoveCancelOpen && HasMoveInput())
+	{
+		InterruptCombo();
+	}
+}
+
+void UCombatComponent::NotifyMoveCancelEnd()
+{
+	bMoveCancelOpen = false;
+	if (State == ECombatState::Attacking)
+	{
+		SetControlLocked(true);
+	}
+}
+
+void UCombatComponent::HandleOwnerHealthChanged(float NewHealth, float MaxHealth, float Delta, AActor* DamageCauser)
+{
+	// Delta negativo = dano. Recibir un golpe a mitad de combo lo interrumpe.
+	if (Delta < 0.f && State == ECombatState::Attacking)
+	{
+		InterruptCombo();
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Control del personaje
+// ---------------------------------------------------------------------------
+
+void UCombatComponent::SetControlLocked(bool bLocked)
+{
+	if (bControlLocked == bLocked)
+	{
+		return;
+	}
+
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (!Character)
+	{
+		return;
+	}
+
+	AController* Controller = Character->GetController();
+	UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+	bControlLocked = bLocked;
+
+	if (bLocked)
+	{
+		bSavedUseControllerYaw = Character->bUseControllerRotationYaw;
+		Character->bUseControllerRotationYaw = false;
+		if (Movement)
+		{
+			bSavedOrientToMovement = Movement->bOrientRotationToMovement;
+			Movement->bOrientRotationToMovement = false;
+		}
+		if (Controller)
+		{
+			Controller->SetIgnoreMoveInput(true);
+		}
+	}
+	else
+	{
+		Character->bUseControllerRotationYaw = bSavedUseControllerYaw;
+		if (Movement)
+		{
+			Movement->bOrientRotationToMovement = bSavedOrientToMovement;
+		}
+		if (Controller)
+		{
+			Controller->SetIgnoreMoveInput(false);
+		}
+	}
+}
+
+bool UCombatComponent::HasMoveInput() const
+{
+	if (const APawn* Pawn = Cast<APawn>(GetOwner()))
+	{
+		return Pawn->GetLastMovementInputVector().SizeSquared() > 0.01f;
+	}
+	return false;
 }
 
 // ---------------------------------------------------------------------------

@@ -73,6 +73,9 @@ public:
 	void NotifyHitWindowEnd();
 	void NotifyComboWindowBegin();
 	void NotifyComboWindowEnd();
+	void NotifyMoveCancelBegin();
+	void NotifyMoveCancelTick();
+	void NotifyMoveCancelEnd();
 
 	/** Busca el CombatComponent del dueno de una malla (para los notifies). */
 	static UCombatComponent* FindFromMesh(const USkeletalMeshComponent* MeshComp);
@@ -83,6 +86,10 @@ protected:
 private:
 	UFUNCTION()
 	void HandleOwnerDeath(AActor* Victim, AActor* Killer);
+
+	/** Si el dueno recibe dano mientras ataca, el combo se interrumpe. */
+	UFUNCTION()
+	void HandleOwnerHealthChanged(float NewHealth, float MaxHealth, float Delta, AActor* DamageCauser);
 
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
@@ -96,6 +103,10 @@ private:
 	void ReleaseStunnedTargets();
 	void BeginAirHover();
 	void EndAirHover();
+
+	/** Bloquea (o devuelve) el movimiento y la rotacion del personaje mientras ataca. */
+	void SetControlLocked(bool bLocked);
+	bool HasMoveInput() const;
 
 	const TArray<TObjectPtr<UAttackData>>& GetCurrentAttacks() const;
 	UAnimInstance* GetAnimInstance() const;
@@ -113,6 +124,11 @@ private:
 
 	bool bHovering = false;
 	float SavedGravityScale = 1.f;
+
+	bool bControlLocked = false;
+	bool bMoveCancelOpen = false;
+	bool bSavedUseControllerYaw = false;
+	bool bSavedOrientToMovement = false;
 
 	UPROPERTY()
 	TObjectPtr<UAttackData> CurrentAttack;
