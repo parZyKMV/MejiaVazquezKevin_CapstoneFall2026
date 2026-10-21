@@ -156,6 +156,9 @@ void URestZoneComponent::OnFadedOut()
 				Controller->SetControlRotation(WakeRot);
 			}
 		}
+
+		// Tras reaparecer el jugador esta dentro de la zona (permite dormir de inmediato).
+		SetPlayerInside(true);
 	}
 
 	// Pantalla en negro: el generador destruye lo viejo y construye desde este cuarto.
@@ -212,6 +215,19 @@ void URestZoneComponent::SetPlayerLocked(bool bLocked)
 		{
 			Controller->SetIgnoreMoveInput(bLocked);
 			Controller->SetIgnoreLookInput(bLocked);
+
+			// Tambien se bloquean ataque, salto e interactuar mientras dura la secuencia.
+			if (APlayerController* PC = Cast<APlayerController>(Controller))
+			{
+				if (bLocked)
+				{
+					Player->DisableInput(PC);
+				}
+				else
+				{
+					Player->EnableInput(PC);
+				}
+			}
 		}
 	}
 }

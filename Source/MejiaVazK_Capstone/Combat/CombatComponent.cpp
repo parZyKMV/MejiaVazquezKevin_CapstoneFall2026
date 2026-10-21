@@ -356,6 +356,12 @@ void UCombatComponent::NotifyMoveCancelEnd()
 
 void UCombatComponent::HandleOwnerHealthChanged(float NewHealth, float MaxHealth, float Delta, AActor* DamageCauser)
 {
+	// Revivir (HealthComponent::Revive avisa con Delta positivo): el dueno puede atacar otra vez.
+	if (bOwnerDead && Delta > 0.f && NewHealth > 0.f)
+	{
+		bOwnerDead = false;
+	}
+
 	// Delta negativo = dano. Recibir un golpe a mitad de combo lo interrumpe.
 	if (Delta < 0.f && State == ECombatState::Attacking)
 	{

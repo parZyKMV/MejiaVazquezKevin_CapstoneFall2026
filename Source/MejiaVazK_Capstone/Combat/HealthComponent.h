@@ -52,6 +52,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void Heal(float Amount);
 
+	/** Revive al dueno con HealthPercent (0-1) de su vida maxima. Quita el estado de muerte y el aturdimiento. */
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void Revive(float HealthPercent = 1.f);
+
 	/** Aturde al dueno durante Duration segundos. Si ya esta aturdido, renueva el tiempo. */
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void ApplyHitStun(float Duration);

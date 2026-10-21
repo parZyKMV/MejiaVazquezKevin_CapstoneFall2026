@@ -52,6 +52,18 @@ void UHealthComponent::Heal(float Amount)
 	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth, CurrentHealth - OldHealth, nullptr);
 }
 
+void UHealthComponent::Revive(float HealthPercent)
+{
+	bIsDead = false;
+	ReleaseFromStun();
+
+	const float OldHealth = CurrentHealth;
+	CurrentHealth = FMath::Clamp(MaxHealth * HealthPercent, 1.f, MaxHealth);
+
+	// Delta positivo: la barra se actualiza y el combo no se interrumpe.
+	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth, CurrentHealth - OldHealth, nullptr);
+}
+
 void UHealthComponent::ApplyHitStun(float Duration)
 {
 	if (bIsDead || Duration <= 0.f)
