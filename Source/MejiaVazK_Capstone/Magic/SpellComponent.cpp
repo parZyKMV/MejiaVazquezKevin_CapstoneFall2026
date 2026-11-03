@@ -4,6 +4,7 @@
 #include "Animation/AnimMontage.h"
 #include "Combat/CombatComponent.h"
 #include "Combat/HealthComponent.h"
+#include "Combat/LockOnComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Data/SpellData.h"
 #include "Engine/World.h"
@@ -187,7 +188,17 @@ void USpellComponent::ReleaseSpell()
 		}
 	}
 
-	const FTransform SpawnTransform(Owner->GetActorRotation(), SpawnLocation);
+	// Direccion: hacia el objetivo fijado (lock-on); si no hay, hacia donde mira el personaje.
+	FRotator SpawnRotation = Owner->GetActorRotation();
+	if (const ULockOnComponent* LockOn = Owner->FindComponentByClass<ULockOnComponent>())
+	{
+		if (LockOn->IsLockedOn())
+		{
+			SpawnRotation = (LockOn->GetTargetAimLocation() - SpawnLocation).Rotation();
+		}
+	}
+
+	const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
 
 	ASpellProjectile* Projectile = World->SpawnActorDeferred<ASpellProjectile>(
 		Spell->ProjectileClass, SpawnTransform, Owner, Cast<APawn>(Owner),
