@@ -21,6 +21,20 @@ void USpellComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Siempre NumSlots espacios (los que sobren se recortan, los que falten quedan vacios).
+	EquippedSpells.SetNum(NumSlots);
+	CooldownEnd.SetNumZeroed(NumSlots);
+	CooldownLength.SetNumZeroed(NumSlots);
+
+	// Todo lo equipado cuenta como desbloqueado.
+	for (USpellData* Spell : EquippedSpells)
+	{
+		if (Spell)
+		{
+			UnlockedSpells.AddUnique(Spell);
+		}
+	}
+
 	if (AActor* Owner = GetOwner())
 	{
 		if (UHealthComponent* Health = Owner->FindComponentByClass<UHealthComponent>())
@@ -34,6 +48,99 @@ USpellComponent* USpellComponent::FindFromMesh(const USkeletalMeshComponent* Mes
 {
 	AActor* Owner = MeshComp ? MeshComp->GetOwner() : nullptr;
 	return Owner ? Owner->FindComponentByClass<USpellComponent>() : nullptr;
+}
+
+USpellData* USpellComponent::GetEquippedSpell(int32 SlotIndex) const
+{
+	return EquippedSpells.IsValidIndex(SlotIndex) ? EquippedSpells[SlotIndex].Get() : nullptr;
+}
+
+TArray<USpellData*> USpellComponent::GetReserveSpells() const
+{
+	TArray<USpellData*> Result;
+	for (USpellData* Spell : UnlockedSpells)
+	{
+		if (Spell && !EquippedSpells.Contains(Spell))
+		{
+			Result.Add(Spell);
+		}
+	}
+	return Result;
+}
+
+bool USpellComponent::UnlockSpell(USpellData* Spell)
+{
+	if (!Spell || UnlockedSpells.Contains(Spell))
+	{
+		return false;
+	}
+
+	UnlockedSpells.Add(Spell);
+	OnSpellUnlocked.Broadcast(Spell);
+
+	// Si hay un espacio libre, se equipa solo.
+	EquippedSpells.SetNum(NumSlots);
+	for (int32 i = 0; i < NumSlots; ++i)
+	{
+		if (!EquippedSpells[i])
+		{
+			EquipSpell(i, Spell);
+			break;
+		}
+	}
+	return true;
+}
+
+bool USpellComponent::EquipSpell(int32 SlotIndex, USpellData* Spell)
+{
+	if (!Spell || SlotIndex < 0 || SlotIndex >= NumSlots || bCasting)
+	{
+		return false;
+	}
+
+	// Solo se pueden equipar hechizos desbloqueados.
+	if (!UnlockedSpells.Contains(Spell))
+	{
+		return false;
+	}
+
+	EquippedSpells.SetNum(NumSlots);
+
+	USpellData* Previous = EquippedSpells[SlotIndex];
+	if (Previous == Spell)
+	{
+		return true;
+	}
+
+	// Si ya estaba en otro espacio, se intercambian (nunca queda repetido).
+	const int32 OtherSlot = EquippedSpells.IndexOfByKey(Spell);
+	if (OtherSlot != INDEX_NONE)
+	{
+		EquippedSpells[OtherSlot] = Previous;
+		OnSpellEquipped.Broadcast(OtherSlot, Previous);
+	}
+
+	EquippedSpells[SlotIndex] = Spell;
+	OnSpellEquipped.Broadcast(SlotIndex, Spell);
+	return true;
+}
+
+bool USpellComponent::UnequipSlot(int32 SlotIndex)
+{
+	if (SlotIndex < 0 || SlotIndex >= NumSlots || bCasting)
+	{
+		return false;
+	}
+
+	EquippedSpells.SetNum(NumSlots);
+	if (!EquippedSpells[SlotIndex])
+	{
+		return false;
+	}
+
+	EquippedSpells[SlotIndex] = nullptr;
+	OnSpellEquipped.Broadcast(SlotIndex, nullptr);
+	return true;
 }
 
 float USpellComponent::GetCooldownRemaining(int32 SlotIndex) const
