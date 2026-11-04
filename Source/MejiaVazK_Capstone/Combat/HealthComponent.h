@@ -37,6 +37,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Health|Events")
 	FOnHitStunSignature OnStunEnded;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+
+	bool bInvulnerable = false;
+
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetCurrentHealth() const { return CurrentHealth; }
 

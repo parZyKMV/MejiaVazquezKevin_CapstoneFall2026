@@ -23,6 +23,8 @@ void UHealthComponent::BeginPlay()
 
 void UHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
 {
+	if (bInvulnerable) { return; }
+
 	if (bIsDead || Damage <= 0.f)
 	{
 		return;
@@ -66,6 +68,8 @@ void UHealthComponent::Revive(float HealthPercent)
 
 void UHealthComponent::ApplyHitStun(float Duration)
 {
+	if (bInvulnerable) { return; }
+
 	if (bIsDead || Duration <= 0.f)
 	{
 		return;

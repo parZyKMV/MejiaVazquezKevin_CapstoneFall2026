@@ -8,6 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Combat/DodgeComponent.h"
 
 ULockOnComponent::ULockOnComponent()
 {
@@ -233,7 +234,8 @@ void ULockOnComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	}
 
 	const UCombatComponent* Combat = Character->FindComponentByClass<UCombatComponent>();
-	const bool bAttacking = Combat && Combat->GetCombatState() == ECombatState::Attacking;
+	const UDodgeComponent* Dodge = Character->FindComponentByClass<UDodgeComponent>();
+	const bool bAttacking = (Combat && Combat->GetCombatState() == ECombatState::Attacking) || (Dodge && Dodge->IsDodging());
 
 	// Sin objetivo: devolver el giro normal (esperando a que termine un ataque en curso) y apagar el Tick.
 	if (!Target.IsValid())
