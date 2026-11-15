@@ -13,6 +13,8 @@ class UProjectileMovementComponent;
  *
  * Aplica dano con ApplyDamage a lo primero con HealthComponent que toca (menos a quien lo lanzo)
  * y se destruye al chocar con una pared.
+ *
+ * Si bIgnites esta activo, al chocar enciende lo que tenga un IgnitableComponent (antorchas...).
  */
 UCLASS()
 class MEJIAVAZK_CAPSTONE_API ASpellProjectile : public AActor
@@ -27,6 +29,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spell", meta = (ExposeOnSpawn = "true"))
 	float StunDuration = 0.5f;
+
+	/** Activar en el fuego: enciende antorchas y otros objetos con IgnitableComponent. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spell")
+	bool bIgnites = false;
 
 	/** Se llama al impactar (con un enemigo o una pared). Pon aqui el efecto y el sonido en Blueprint. HitActor es nulo si fue una pared. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Spell")
@@ -47,6 +53,8 @@ private:
 
 	UFUNCTION()
 	void HandleHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	void TryIgnite(AActor* Target);
 
 	bool bImpacted = false;
 };

@@ -4,6 +4,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Magic/IgnitableComponent.h"
 
 ASpellProjectile::ASpellProjectile()
 {
@@ -42,6 +43,19 @@ void ASpellProjectile::BeginPlay()
 	Collision->OnComponentHit.AddDynamic(this, &ASpellProjectile::HandleHit);
 }
 
+void ASpellProjectile::TryIgnite(AActor* Target)
+{
+	if (!bIgnites || !Target)
+	{
+		return;
+	}
+
+	if (UIgnitableComponent* Ignitable = Target->FindComponentByClass<UIgnitableComponent>())
+	{
+		Ignitable->Ignite(GetInstigator());
+	}
+}
+
 void ASpellProjectile::HandleOverlap(UPrimitiveComponent*, AActor* OtherActor, UPrimitiveComponent*, int32, bool, const FHitResult&)
 {
 	if (bImpacted || !OtherActor || OtherActor == this || OtherActor == GetInstigator())
@@ -64,11 +78,13 @@ void ASpellProjectile::HandleOverlap(UPrimitiveComponent*, AActor* OtherActor, U
 		Health->ApplyHitStun(StunDuration);
 	}
 
+	TryIgnite(OtherActor);
+
 	OnImpact(OtherActor, GetActorLocation());
 	Destroy();
 }
 
-void ASpellProjectile::HandleHit(UPrimitiveComponent*, AActor*, UPrimitiveComponent*, FVector, const FHitResult& Hit)
+void ASpellProjectile::HandleHit(UPrimitiveComponent*, AActor* OtherActor, UPrimitiveComponent*, FVector, const FHitResult& Hit)
 {
 	if (bImpacted)
 	{
@@ -76,6 +92,10 @@ void ASpellProjectile::HandleHit(UPrimitiveComponent*, AActor*, UPrimitiveCompon
 	}
 
 	bImpacted = true;
+
+	// Antorchas, braseros... (lo que bloquea el proyectil y tiene IgnitableComponent).
+	TryIgnite(OtherActor);
+
 	OnImpact(nullptr, Hit.ImpactPoint);
 	Destroy();
 }
